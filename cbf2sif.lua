@@ -1,5 +1,5 @@
 -- Custom Beatmap Festival to SIF Beatmap
--- Command-line: lua cbfalpha2sif.lua <CBF project folder> <output = stdout>
+-- Command-line: lua cbf2sif.lua <CBF project folder> <output = stdout>
 local arg = {...}
 local target_output = io.stdout
 
@@ -13,7 +13,7 @@ if arg[2] then
 end
 
 local project_folder = arg[1]:gsub("[/|\\]$", "")
-local JSON = dofile("JSON.lua")
+local JSON = require("JSON")
 
 local cbf = {
 	beatmap = assert(io.open(project_folder.."/beatmap.txt", "rb")),
@@ -66,7 +66,7 @@ end)
 
 -- Parse notes
 for _, line in pairs(readed_notes_data) do
-	local time, pos, is_hold, is_release, release_time, hold_time = line:match("([^/]+)/([^/]+)/[^/]+/([^/]+)/([^/]+)/([^/]+)/([^;]+)")
+	local time, pos, is_hold, is_release, release_time, hold_time, is_star = line:match("([^/]+)/([^/]+)/[^/]+/([^/]+)/([^/]+)/([^/]+)/([^/]+)/")
 	local num_pos = position_translation[pos]
 	print(line)
 	release_time = tonumber(release_time)
@@ -96,7 +96,7 @@ for _, line in pairs(readed_notes_data) do
 			timing_sec = time + 0,
 			notes_attribute = desired_attribute,
 			notes_level = 1,
-			effect = 1,
+			effect = is_star and 4 or 1,
 			effect_value = 2,
 			position = num_pos
 		})

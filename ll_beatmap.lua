@@ -1,47 +1,48 @@
+local JSON = require("JSON")
+
+local function hasbit(a, b)
+	return a % (b * 2) >= b
+end
+
 function load_sif_beatmap(file)
-	local yajl = require("yajl")
 	local f = io.open(file, "rb")
-	local x = yajl.to_value(f:read("*a"))
+	local x = JSON:decode(f:read("*a"))
 
 	f:close()
 	return x
 end
 
 function load_rs_beatmap(file)
-	local yajl = require("yajl")
 	local f = io.open(file, "rb")
-	local x = yajl.to_value(f:read("*a"))
+	local x = JSON:decode(f:read("*a"))
 	
 	return x.song_info[1].notes
 end
 
 function load_llp_beatmap(file)
-	local yajl = require("yajl")
 	local f = io.open(file, "rb")
-	local x = yajl.to_value(f:read("*a"))
+	local x = JSON:decode(f:read("*a"))
 	
 	f:close()
 	return x
 end
 
 function save_sif_beatmap(file, beatmap)
-	local yajl = require("yajl")
 	local f = io.open(file, "wb")
 
-	f:write(yajl.to_string(beatmap))
+	f:write(JSON:encode(beatmap))
 	f:close()
 end
 
 function rs2sif(rs_map, attribute)
-	local bit = require("bit")
 	local sif_map = {}
 	
 	for n, v in pairs(rs_map) do
 		local new_effect = 1
 		
-		if bit.band(v.effect, 4) > 0 then
+		if hasbit(v.effect, 3) then
 			new_effect = 3
-		elseif bit.band(v.effect, 8) > 0 then
+		elseif hasbit(v.effect, 4) then
 			new_effect = 4
 		end
 		

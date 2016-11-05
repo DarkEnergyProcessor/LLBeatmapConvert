@@ -7,18 +7,18 @@ Various Lua scripts to convert SIF beatmap from one format to another.
 
 # Implementation Table (Column part is From, Row part is Target)
 
-* Field with asterisk means already implemented
-
-* Dashes means unnecessary
-
 Beatmap | SIF | RS  | LLP | SifSimu | CBF | MIDI
 ------- | --- | --- | --- | ------- | --- | ----
-SIF     | \-  | \*  | \*  |         | \*  |
+SIF     | \-  | \✓  | \✓  | \*      | \*  |
 RS      |     | \-  |     |         |     |
 LLP     |     |     | \-  |         |     |
 SifSimu | \*  |     |     | \-      |     |
 CBF     |     |     |     |         | \-  |
-MIDI    | \*  |     |     |         |     | \-
+MIDI    | \✓  |     |     |         |     | \-
+
+\✓ = Fully implemented  
+\* = Experimental  
+\- = Unnecessary
 
 # Disclaimer
 
