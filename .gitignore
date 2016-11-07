@@ -1,1 +1,4 @@
-*.txt
+*
+!*.lua
+!LICENSE
+!README.md

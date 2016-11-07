@@ -9,12 +9,12 @@ Various Lua scripts to convert SIF beatmap from one format to another.
 
 Beatmap | SIF | RS  | LLP | SifSimu | CBF | MIDI
 ------- | --- | --- | --- | ------- | --- | ----
-SIF     | \-  | \✓  | \✓  | \*      | \*  |
+SIF     | \-  |  ✓  |  ✓  | \*      | \*  | \*
 RS      |     | \-  |     |         |     |
 LLP     |     |     | \-  |         |     |
 SifSimu | \*  |     |     | \-      |     |
 CBF     |     |     |     |         | \-  |
-MIDI    | \✓  |     |     |         |     | \-
+MIDI    |  ✓  |     |     |         |     | \-
 
 \✓ = Fully implemented  
 \* = Experimental  

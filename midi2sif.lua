@@ -37,8 +37,6 @@ function midi_to_sif(stream)
 	local ppqn = str2dword_be("\0\0"..stream:read(2))
 	
 	local tempo = 120			-- Default tempo, 120 BPM
-	local tick_before_tempo = 0	-- Tick before FF 51 event comes
-	local sec_before_tempo = 0	-- Seconds before FF 51 event comes
 	local event_list = {}		-- Will be analyzed later. For now, just collect all of it
 	
 	if ppqn > 32768 then
@@ -81,15 +79,17 @@ function midi_to_sif(stream)
 				
 				insert_event(timing_total, {
 					note = false,	-- false = off, true = on.
-					pos = note
+					pos = note,
+					channel = event_byte % 16
 				})
 			elseif event_type == 9 then
 				note = ss:read(1):byte()
 				ss:seek("cur", 1)
 				
 				insert_event(timing_total, {
-					note = false,	-- false = off, true = on.
-					pos = note
+					note = true,	-- false = off, true = on.
+					pos = note,
+					channel = event_byte % 16
 				})
 			elseif event_byte == 255 then
 				-- meta
@@ -120,6 +120,7 @@ function midi_to_sif(stream)
 				data = b.data,
 				note = b.note,
 				pos = b.pos,
+				channel = b.channel
 			})
 		end
 	end
@@ -129,9 +130,105 @@ function midi_to_sif(stream)
 		return a.tick < b.tick or (a.tick == b.tick and a.order < b.order)
 	end)
 	
-	local left_index, right_index
+	local top_index = 0
+	local bottom_index = 127
 	
 	-- Analyze start and end position. 
 	for n, v in pairs(event_list) do
+		if type(v.note) == "boolean" then
+			-- Note
+			top_index = math.max(top_index, v.pos)
+			bottom_index = math.min(bottom_index, v.pos)
+		end
 	end
+	local mid_idx = top_index - bottom_index  + 1
+	
+	if mid_idx > 9 or mid_idx % 2 == 0 then
+		error("Failed to analyze note position. Make sure you only use 9 note keys or odd amount of note keys")
+	end
+	
+	-- If it's not 9 and it's odd, automatically adjust
+	if mid_idx ~= 9 and midi_idx % 2 == 1 then
+		local mid_pos = (top_index + bottom_index) / 2
+		
+		top_index = mid_pos + 4
+		bottom_index = mid_pos - 4
+	end
+	
+	-- Now start conversion.
+	local longnote_queue = {}
+	local sif_beatmap = {}
+	
+	for n, v in pairs(event_list) do
+		if v.meta == 51 then
+			-- Tempo change
+			local tempo_num = {string.byte(v.data, 1, 128)}
+			tempo = 0
+			
+			for i = 1, #tempo_num do
+				tempo = tempo * 256 + tempo_num[i]
+			end
+			
+			tempo = math.floor(600000000 / tempo) / 10
+		elseif type(v.note) == "boolean" then
+			local position = v.pos - bottom_index + 1
+			local attribute = math.floor(v.channel / 4)
+			local effect = v.channel % 4 + 1
+			
+			if attribute > 0 then
+				if v.note then
+					if effect == 3 then
+						-- Add to longnote queue
+						assert(longnote_queue[position] == nil, "another note in pos "..position.." is in queue")
+						longnote_queue[position] = {v.tick, attribute, effect, position}
+					else
+						sif_beatmap[#sif_beatmap + 1] = {
+							timing_sec = v.tick * 60 / ppqn / tempo,
+							notes_attribute = attribute,
+							notes_level = 1,
+							effect = effect,
+							effect_value = 2,
+							position = position
+						}
+					end
+				elseif v.note == false and effect == 3 then
+					-- Stop longnote queue
+					local queue = assert(longnote_queue[position], "queue for pos "..position.." is empty")
+					
+					longnote_queue[position] = nil
+					sif_beatmap[#sif_beatmap + 1] = {
+						timing_sec = queue[1] * 60 / ppqn / tempo,
+						notes_attribute = attribute,
+						notes_level = 1,
+						effect = 3,
+						effect_value = (v.tick - queue[1]) * 60 / ppqn / tempo,
+						position = position
+					}
+				end
+			end
+		end
+	end
+	
+	table.sort(sif_beatmap, function(a, b) return a.timing_sec < b.timing_sec end)
+	
+	return sif_beatmap
 end
+
+local arg = arg or {...}
+
+if #arg > 0 then
+	local JSON = require("JSON")
+	local input_file = assert(io.open(arg[1], "rb"))
+	local output_file = io.open(arg[2] or "", "wb") or io.stdout
+	
+	local x = midi_to_sif(input_file)
+	input_file:close()
+	output_file:write(JSON:encode(x))
+	
+	if output_file ~= io.stdout then
+		output_file:close()
+	end
+elseif arg[-1] then
+	print("Usage: lua midi2sif.lua <input> <output=stdout>")
+end
+
