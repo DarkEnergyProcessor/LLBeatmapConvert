@@ -141,6 +141,7 @@ function midi_to_sif(stream)
 			bottom_index = math.min(bottom_index, v.pos)
 		end
 	end
+	
 	local mid_idx = top_index - bottom_index  + 1
 	
 	if mid_idx > 9 or mid_idx % 2 == 0 then
@@ -160,7 +161,7 @@ function midi_to_sif(stream)
 	local sif_beatmap = {}
 	
 	for n, v in pairs(event_list) do
-		if v.meta == 51 then
+		if v.meta == 81 then
 			-- Tempo change
 			local tempo_num = {string.byte(v.data, 1, 128)}
 			tempo = 0
